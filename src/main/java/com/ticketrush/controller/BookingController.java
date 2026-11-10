@@ -1,12 +1,14 @@
 package com.ticketrush.controller;
 
+import com.ticketrush.dto.CreateEventRequest;
+import com.ticketrush.entity.Event;
 import com.ticketrush.service.BookingService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/events/{eventId}/seats")
+@RequestMapping("/api/events")
 public class BookingController {
 
     private final BookingService bookingService;
@@ -18,13 +20,20 @@ public class BookingController {
         this.strategy = strategy;
     }
 
-    @PostMapping("/{seatId}/book")
+    // --- NOUVEL ENDPOINT ---
+    @PostMapping
+    public ResponseEntity<Event> createEvent(@RequestBody CreateEventRequest request) {
+        Event created = bookingService.createEvent(request.getName(), request.getTotalSeats());
+        return ResponseEntity.ok(created);
+    }
+
+    // --- ENDPOINTS EXISTANTS ---
+    @PostMapping("/{eventId}/seats/{seatId}/book")
     public ResponseEntity<String> bookSeat(
             @PathVariable Long eventId,
             @PathVariable Long seatId,
             @RequestParam String buyer) {
         
-        // ICI on appelle le service de l'extérieur ! Spring ouvre bien la transaction.
         if ("pessimistic".equals(strategy)) {
             bookingService.bookPessimistic(eventId, seatId, buyer);
         } else if ("optimistic".equals(strategy)) {
@@ -36,7 +45,7 @@ public class BookingController {
         return ResponseEntity.ok("Seat booked successfully for " + buyer);
     }
 
-     @PostMapping("/book-any")
+    @PostMapping("/{eventId}/seats/book-any")
     public ResponseEntity<String> bookAnySeat(
             @PathVariable Long eventId,
             @RequestParam String buyer) {
