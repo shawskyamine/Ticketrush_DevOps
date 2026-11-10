@@ -1,0 +1,32 @@
+image: maven:3.9-eclipse-temurin-21
+
+stages:
+  - build
+  - test
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  DB_URL: "jdbc:postgresql://postgres:5432/ticketrush"
+  DB_USER: "ticketrush"
+  DB_PASSWORD: "ticketrush"
+
+cache:
+  key: "maven-cache"
+  paths:
+    - .m2/repository/
+
+build-job:
+  stage: build
+  script:
+    - mvn clean compile -DskipTests
+  artifacts:
+    paths:
+      - target/
+
+test-job:
+  stage: test
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+  script:
+    - mvn test
