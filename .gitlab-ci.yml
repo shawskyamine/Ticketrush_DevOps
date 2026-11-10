@@ -28,5 +28,9 @@ test-job:
   services:
     - name: postgres:16-alpine
       alias: postgres
+      variables:
+        POSTGRES_USER: ticketrush
+        POSTGRES_PASSWORD: ticketrush
+        POSTGRES_DB: ticketrush
   script:
     - mvn test
