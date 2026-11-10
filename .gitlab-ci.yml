@@ -33,4 +33,5 @@ test-job:
         POSTGRES_PASSWORD: ticketrush
         POSTGRES_DB: ticketrush
   script:
-    - mvn test
+    # On remplace 'mvn test' par 'mvn verify' pour déclencher JaCoCo check
+    - mvn verify
