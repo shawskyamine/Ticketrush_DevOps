@@ -1,12 +1,13 @@
 include:
   - template: Security/SAST.gitlab-ci.yml
   - template: Security/Secret-Detection.gitlab-ci.yml
-  
+
 image: maven:3.9-eclipse-temurin-21
 
 stages:
   - build
   - test
+  - security
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
@@ -37,5 +38,13 @@ test-job:
         POSTGRES_PASSWORD: ticketrush
         POSTGRES_DB: ticketrush
   script:
-    # On remplace 'mvn test' par 'mvn verify' pour déclencher JaCoCo check
     - mvn verify
+
+trivy-dependency-scan:
+  stage: security
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy fs --exit-code 1 --severity HIGH,CRITICAL --no-progress --format table .
+  allow_failure: false
