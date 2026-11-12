@@ -1,0 +1,9 @@
+target/
+.git/
+.gitlab-ci.yml
+*.md
+.mvn/
+mvnw
+mvnw.cmd
+.idea/
+.vscode/
