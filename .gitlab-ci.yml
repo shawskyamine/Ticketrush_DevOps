@@ -8,8 +8,9 @@ stages:
   - build
   - test
   - security
-  - package      # ← Nouveau
-  - image-scan   # ← Nouveau
+  - package
+  - image-scan
+  - deploy
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
@@ -54,9 +55,6 @@ trivy-dependency-scan:
     - trivy fs --exit-code 1 --severity HIGH,CRITICAL --no-progress --offline-scan --format table .
   allow_failure: false
 
-# ==========================================
-# NOUVEAU : Build et push de l'image Docker
-# ==========================================
 build-image:
   stage: package
   image: docker:24.0.5
@@ -72,9 +70,6 @@ build-image:
     - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
     - docker push $CI_REGISTRY_IMAGE:latest
 
-# ==========================================
-# NOUVEAU : Scan de l'image avec Trivy
-# ==========================================
 scan-image:
   stage: image-scan
   image:
@@ -83,3 +78,13 @@ scan-image:
   script:
     - trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   allow_failure: false
+
+deploy-dev:
+  stage: deploy
+  tags:
+    - local
+  only:
+    - main
+  script:
+    - export KUBECONFIG=/home/gitlab-runner/.kube/config
+    - helm upgrade ticketrush ./helm/ticketrush --namespace ticketrush --set image.tag=$CI_COMMIT_SHORT_SHA --atomic --wait
