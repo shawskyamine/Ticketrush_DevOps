@@ -8,6 +8,8 @@ stages:
   - build
   - test
   - security
+  - package      # ← Nouveau
+  - image-scan   # ← Nouveau
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
@@ -46,10 +48,38 @@ trivy-dependency-scan:
     name: aquasec/trivy:latest
     entrypoint: [""]
   before_script:
-    # On télécharge les dépendances avec Maven (qui n'est pas bloqué)
     - apk add --no-cache maven
     - mvn dependency:resolve -DskipTests --no-transfer-progress
   script:
-    # On dit à Trivy d'utiliser le cache local et de ne pas aller sur internet
     - trivy fs --exit-code 1 --severity HIGH,CRITICAL --no-progress --offline-scan --format table .
+  allow_failure: false
+
+# ==========================================
+# NOUVEAU : Build et push de l'image Docker
+# ==========================================
+build-image:
+  stage: package
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA .
+    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE:latest
+    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+    - docker push $CI_REGISTRY_IMAGE:latest
+
+# ==========================================
+# NOUVEAU : Scan de l'image avec Trivy
+# ==========================================
+scan-image:
+  stage: image-scan
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy image --exit-code 1 --severity HIGH,CRITICAL --no-progress $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
   allow_failure: false
